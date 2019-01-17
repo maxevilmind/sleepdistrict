@@ -1,0 +1,16 @@
+{
+  "name": "dreamcaster",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "maxevilmind",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "dotenv": "^6.2.0",
+    "geolib": "^2.0.24",
+    "lodash": "^4.17.11",
+    "mongoose": "^5.4.4",
+    "random-location": "^1.0.12",
+    "telegraf": "^3.26.0"
+  }
+}
