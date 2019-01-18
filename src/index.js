@@ -264,6 +264,7 @@ bot.hears(/^(help|menu)$/i, ctx => { // take command
   let menuItems = [
     ['attack'],
     ['inventory'],
+    ['me'],
     ['pick'],
   ];
   ctx.reply('Choose a command or send your location to scan for items', Markup
@@ -271,6 +272,19 @@ bot.hears(/^(help|menu)$/i, ctx => { // take command
     .oneTime()
     .resize()
     .extra());
+})
+
+bot.hears(/me/i, ctx => { // take command
+  User.findOne({ id: get(ctx, 'from.id') })
+    .exec((err, self) => {
+      if (err) console.log (`[error] could not get stats for ${get(ctx, 'from.id')}`)
+      else ctx.reply(`
+Your stats:\n
+❤️ Health: ${self.stats.hp}
+⚔ Attack: ${self.stats.attack}
+🛡 Defence: ${self.stats.defence}
+        `);
+    })
 })
 
 const checkDead = victimId => {
