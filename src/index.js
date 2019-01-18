@@ -166,7 +166,7 @@ bot.hears(/attack/i, ctx => {
 })
 
 bot.hears(/🖐/i, ctx => { // take command
-  Location.find({ user_id: ctx.from.id })
+  Location.findOne({ user_id: get(ctx, 'from.id') })
     .exec((err, res) => {
       const item = Item.update({
         '_id': ctx.message.text.match(/\[(.*?)\]/)[1],
@@ -174,15 +174,15 @@ bot.hears(/🖐/i, ctx => { // take command
           '$near': {
             '$maxDistance': 100, '$geometry': {
               'type': "Point", 'coordinates': [
-                res[0].longitude,
-                res[0].latitude
+                get(res, 'location.coordinates[0]'),
+                get(res, 'location.coordinates[1]'),
               ]
             }
           }
         }
       }, {
         location: undefined,
-        carried_by: ctx.from.id
+        carried_by: get(ctx, 'from.id')
       });
       item.updateOne(err => {
         if (err) console.log ('[error] could not write to db')
