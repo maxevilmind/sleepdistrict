@@ -39,8 +39,8 @@ for (let index = 0; index < 50000; index++) {
       ]
     },
     type: 'weapon',
-    name: 'Glock G17',
-    description: 'Glock G17 9 mm short recoil–operated, locked-breech semi-automatic pistol',
+    name: 'AWP',
+    description: 'The Accuracy International Arctic Warfare rifle is a bolt-action sniper rifle designed and manufactured by the British company Accuracy International.',
     cost: 500,
     stats: {
       attack: 100,

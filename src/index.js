@@ -8,7 +8,6 @@ const mongoose = require('mongoose');
 const get = require('lodash/get');
 
 const User = require('./models/User');
-const Location = require('./models/Location');
 const Item = require('./models/Item');
 
 const uristring =
@@ -48,8 +47,8 @@ bot.start(ctx => {
 
 bot.on('edited_message', ctx => {
   console.log(`[info] ${get(ctx, 'from.username')} location updated`, ctx.editedMessage.location);
-  const location = Location.update (
-      { user_id: get(ctx, 'from.id') }, {
+  const user = User.update (
+      { id: get(ctx, 'from.id') }, {
       location: {
         type: "Point",
         coordinates: [
@@ -58,9 +57,9 @@ bot.on('edited_message', ctx => {
         ]
       }
     },
-    { upsert: true }
+    //{ upsert: true }
   );
-  location.updateOne(function (err) {if (err) console.log ('[error] could not write to db')});
+  user.updateOne(function (err) {if (err) console.log ('[error] could not write to db')});
 });
 
 bot.on('location', ctx => {
@@ -91,7 +90,7 @@ bot.on('location', ctx => {
 })
 
 bot.hears(/pick/i, ctx => {
-  Location.findOne({ user_id: ctx.from.id })
+  User.findOne({ id: get(ctx, 'from.id') })
     .exec((err, res) => {
       Item.find({
         'location': {
@@ -106,7 +105,7 @@ bot.hears(/pick/i, ctx => {
         }
       })
         .exec((err, res) => {
-          if (res) {
+          if (res && res.length) {
             let menuItems = [];
             res.forEach(elem => {
               menuItems.push([`🖐[${elem['_id']}] ${elem.name}`])
@@ -124,40 +123,31 @@ bot.hears(/pick/i, ctx => {
 })
 
 bot.hears(/attack/i, ctx => {
-  Location.findOne({ user_id: get(ctx, 'from.id') }) // get user location to find nearby entities
-    .exec((err, res) => {
-      Location.find({ // find entities nearby
+  User.findOne({ id: get(ctx, 'from.id') }) // get user location to find nearby entities
+    .exec((err, self) => {
+      User.find({ // find entities nearby
         'location': {
           '$near': {
             '$maxDistance': 1000000, '$geometry': {
               'type': "Point", 'coordinates': [
-                get(res, 'location.coordinates[0]'),
-                get(res, 'location.coordinates[1]'),
+                get(self, 'location.coordinates[0]'),
+                get(self, 'location.coordinates[1]'),
               ]
             }
           }
         }
       })
-        .exec((err, locations) => {
-          if (locations) {
-            Location.aggregate([{ // add user entity to location
-              '$lookup': {
-                from: 'users',
-                localField: 'user_id',
-                foreignField: 'id',
-                as: 'user'
-              }
-            }]).exec((err, users) => {
-              let menuItems = [];
-              users.forEach(location => {
-                menuItems.push([`🔫[${location['_id']}] ${location.user[0].username}`])
-              })
-              ctx.reply('Choose a player to attack', Markup
-              .keyboard(menuItems)
-              .oneTime()
-              .resize()
-              .extra());
+        .exec((err, users) => {
+          if (users && users.length) {
+            let menuItems = [];
+            users.forEach(user => {
+              menuItems.push([`🔫[${user['_id']}] ${user.username}`])
             })
+            ctx.reply('Choose a player to attack', Markup
+            .keyboard(menuItems)
+            .oneTime()
+            .resize()
+            .extra());
           } else {
             ctx.reply('No entities found nearby')
           }
@@ -166,16 +156,16 @@ bot.hears(/attack/i, ctx => {
 })
 
 bot.hears(/🖐/i, ctx => { // take command
-  Location.findOne({ user_id: get(ctx, 'from.id') })
-    .exec((err, res) => {
+  User.findOne({ id: get(ctx, 'from.id') })
+    .exec((err, self) => {
       const item = Item.update({
         '_id': ctx.message.text.match(/\[(.*?)\]/)[1],
         'location': {
           '$near': {
             '$maxDistance': 100, '$geometry': {
               'type': "Point", 'coordinates': [
-                get(res, 'location.coordinates[0]'),
-                get(res, 'location.coordinates[1]'),
+                get(self, 'location.coordinates[0]'),
+                get(self, 'location.coordinates[1]'),
               ]
             }
           }
@@ -189,6 +179,10 @@ bot.hears(/🖐/i, ctx => { // take command
         else ctx.reply('Successfully picked an item')
       });
     });
+})
+
+bot.hears(/🔫/i, ctx => { // attack command
+  
 })
 
 bot.hears(/inventory/i, ctx => { // take command
