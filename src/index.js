@@ -47,11 +47,16 @@ bot.start(ctx => {
 });
 
 bot.on('edited_message', ctx => {
-  console.log('[info] user location updated', ctx.editedMessage.location);
+  console.log(`[info] ${get(ctx, 'from.username')} location updated`, ctx.editedMessage.location);
   const location = Location.update (
-      { user_id: ctx.from.id }, {
-      longitude: get(ctx, 'editedMessage.location.longitude'),
-      latitude: get(ctx, 'editedMessage.location.latitude'),
+      { user_id: get(ctx, 'from.id') }, {
+      location: {
+        type: "Point",
+        coordinates: [
+          get(ctx, 'editedMessage.location.longitude'),
+          get(ctx, 'editedMessage.location.latitude'),
+        ]
+      }
     },
     { upsert: true }
   );
@@ -86,34 +91,67 @@ bot.on('location', ctx => {
 })
 
 bot.hears(/pick/i, ctx => {
-  Location.find({ user_id: ctx.from.id })
+  Location.findOne({ user_id: ctx.from.id })
     .exec((err, res) => {
       Item.find({
         'location': {
           '$near': {
             '$maxDistance': 100, '$geometry': {
               'type': "Point", 'coordinates': [
-                get(res[0], 'longitude'),
-                get(res[0], 'latitude'),
+                get(res, 'location.coordinates[0]'),
+                get(res, 'location.coordinates[1]'),
               ]
             }
           }
         }
       })
         .exec((err, res) => {
-          let menuItems = [];
           if (res) {
+            let menuItems = [];
             res.forEach(elem => {
               menuItems.push([`🖐[${elem['_id']}] ${elem.name}`])
             })
-          } else {
-            ctx.reply('You did not send your live location. In order to pick up items you should send your live location.')
-          }
-          ctx.reply('Choose an item to pick', Markup
+            ctx.reply('Choose an item to pick', Markup
             .keyboard(menuItems)
             .oneTime()
             .resize()
             .extra());
+          } else {
+            ctx.reply('No entities found nearby')
+          }
+        })
+    });
+})
+
+bot.hears(/attack/i, ctx => {
+  Location.findOne({ user_id: ctx.from.id })
+    .exec((err, res) => {
+      Location.find({
+        'location': {
+          '$near': {
+            '$maxDistance': 10000, '$geometry': {
+              'type': "Point", 'coordinates': [
+                get(res, 'location.coordinates[0]'),
+                get(res, 'location.coordinates[1]'),
+              ]
+            }
+          }
+        }
+      })
+        .exec((err, users) => {
+          if (users) {
+            let menuItems = [];
+            users.forEach(user => {
+              menuItems.push([`🔫[${user['_id']}] ${user.username}`])
+            })
+            ctx.reply('Choose a player to attack', Markup
+            .keyboard(menuItems)
+            .oneTime()
+            .resize()
+            .extra());
+          } else {
+            ctx.reply('No entities found nearby')
+          }
         })
     });
 })
@@ -157,8 +195,9 @@ bot.hears(/inventory/i, ctx => { // take command
   });
 })
 
-bot.hears(/help/i, ctx => { // take command
+bot.hears(/^(help|menu)$/i, ctx => { // take command
   let menuItems = [
+    ['attack'],
     ['inventory'],
     ['pick'],
   ];
