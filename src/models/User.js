@@ -9,14 +9,18 @@ const userSchema = new mongoose.Schema({
     coordinates: []
   },
   stats: {
+    hp: Number,
+    attack: Number,
+    defence: Number,
+    xp: Number,
     strength: Number,
     perception: Number,
     endurance: Number,
     charisma: Number,
     intelligence: Number,
     agility: Number,
-    luck: Number
-  }
+    luck: Number,
+  },
 });
 
 module.exports = exports = mongoose.model('User', userSchema); // export model for use

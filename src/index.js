@@ -38,8 +38,20 @@ bot.start(ctx => {
         first_name: ctx.from.first_name,
         last_name: ctx.from.last_name,
         username: ctx.from.username,
+        location: {
+          type: "Point",
+          coordinates: [
+            0,
+            0,
+          ]
+        },
+        stats: {
+          attack: 0,
+          defence: 0,
+          hp: 100,
+        }
       });
-      user.save(function (err) {if (err) console.log ('[error] could not write to db')});
+      user.save(function (err) {if (err) console.log ('[error] could not write to db', err)});
     }
   })
   ctx.reply('Send me your live location in order to enter the sleep district')
@@ -182,7 +194,44 @@ bot.hears(/🖐/i, ctx => { // take command
 })
 
 bot.hears(/🔫/i, ctx => { // attack command
-  
+  User.findOne({ id: get(ctx, 'from.id') })
+    .exec((err, self) => {
+      User.findOne({
+        '_id': ctx.message.text.match(/\[(.*?)\]/)[1],
+        'location': {
+          '$near': {
+            '$maxDistance': 10000, '$geometry': {
+              'type': "Point", 'coordinates': [
+                get(self, 'location.coordinates[0]'),
+                get(self, 'location.coordinates[1]'),
+              ]
+            }
+          }
+        }
+      })
+        .exec((err, attackedUser)=> {
+          Item.findOne({ carried_by: get(ctx, 'from.id') })
+            .sort({ 'stats.attack': -1 })
+            .exec((err, strongestWeapon) => {
+              if (attackedUser && attackedUser.stats) {
+                let updatedVictimStats = Object.assign({}, attackedUser.stats)
+                updatedVictimStats.hp = updatedVictimStats.hp - strongestWeapon.stats.attack
+                let updatedUser = User.update({
+                  '_id': ctx.message.text.match(/\[(.*?)\]/)[1]},
+                  {
+                    stats: updatedVictimStats
+                  })
+                updatedUser.updateOne(function (err) {
+                  if (err) console.log ('[error] could not write to db')
+                  else {
+                    ctx.reply(`Successfully attacked ${attackedUser.username}`)
+                    bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${strongestWeapon.name} by ${self.username} hitting -${strongestWeapon.stats.attack}`)
+                  }
+                })
+              }
+            })
+        })
+    })
 })
 
 bot.hears(/inventory/i, ctx => { // take command
