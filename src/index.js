@@ -221,19 +221,19 @@ bot.hears(/🔫/i, ctx => { // attack command
                 if (attackedUser && attackedUser.stats) {
                   let updatedVictimStats = Object.assign({}, attackedUser.stats)
                   updatedVictimStats.hp = updatedVictimStats.hp - strongestWeapon.stats.attack
-                  let updatedUser = User.update({
+                  User.updateOne({
                     '_id': ctx.message.text.match(/\[(.*?)\]/)[1]},
                     {
                       stats: updatedVictimStats
                     })
-                  updatedUser.updateOne(function (err) {
-                    if (err) console.log ('[error] could not write to db')
-                    else {
-                      ctx.reply(`Successfully attacked ${attackedUser.username}`)
-                      bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${strongestWeapon.name} by ${self.username} hitting -${strongestWeapon.stats.attack}`)
-                      checkDead(attackedUser.id)
-                    }
-                  })
+                    .exec((err, res) => {
+                      if (err) console.log ('[error] could not write to db')
+                      else {
+                        ctx.reply(`Successfully attacked ${attackedUser.username}`)
+                        bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${strongestWeapon.name} by ${self.username} hitting -${strongestWeapon.stats.attack}`)
+                        checkDead(attackedUser.id)
+                      }
+                    })
                 }
               } else {
                 ctx.reply(`You don't have any weapon to attack with. Go find something!`)
@@ -276,7 +276,7 @@ bot.hears(/^(help|menu)$/i, ctx => { // take command
 const checkDead = victimId => {
   User.findOne({ id: victimId })
     .exec((err, user) => {
-      if (user && user.stats && user.stats.hp && user.stats.hp <= 0) {
+      if (get(user, 'stats.hp') <= 0) {
         Item.updateMany({ carried_by: victimId }, { location: user.location, carried_by: undefined })
           .exec((err, items) => {
             if (err) console.log (`[error] could not update killed user ${user.username}`)
