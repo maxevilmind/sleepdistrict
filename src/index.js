@@ -286,12 +286,22 @@ bot.hears(/me/i, ctx => { // take command
   User.findOne({ id: get(ctx, 'from.id') })
     .exec((err, self) => {
       if (err) console.log (`[error] could not get stats for ${get(ctx, 'from.id')}`)
-      else ctx.reply(`
+      else {
+        Item.findOne({ carried_by: get(ctx, 'from.id') })
+          .sort({ 'stats.defence': -1 })
+          .exec((err, strongestArmor) => {
+            Item.findOne({ carried_by: get(ctx, 'from.id') })
+              .sort({ 'stats.weapon': -1 })
+              .exec((err, strongestWeapon) => {
+                ctx.reply(`
 Your stats:\n
 ❤️ Health: ${self.stats.hp}
-⚔ Attack: ${self.stats.attack}
-🛡 Defence: ${self.stats.defence}
-        `);
+⚔ Attack: ${get(strongestWeapon, 'stats.attack') || 0}
+🛡 Defence: ${get(strongestArmor, 'stats.defence') || 0}
+              `);
+            })
+          })
+      }
     })
 })
 
