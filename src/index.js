@@ -213,21 +213,26 @@ bot.hears(/🔫/i, ctx => { // attack command
           Item.findOne({ carried_by: get(ctx, 'from.id') })
             .sort({ 'stats.attack': -1 })
             .exec((err, strongestWeapon) => {
-              if (attackedUser && attackedUser.stats) {
-                let updatedVictimStats = Object.assign({}, attackedUser.stats)
-                updatedVictimStats.hp = updatedVictimStats.hp - strongestWeapon.stats.attack
-                let updatedUser = User.update({
-                  '_id': ctx.message.text.match(/\[(.*?)\]/)[1]},
-                  {
-                    stats: updatedVictimStats
+              if (strongestWeapon) {
+                if (attackedUser && attackedUser.stats) {
+                  let updatedVictimStats = Object.assign({}, attackedUser.stats)
+                  updatedVictimStats.hp = updatedVictimStats.hp - strongestWeapon.stats.attack
+                  let updatedUser = User.update({
+                    '_id': ctx.message.text.match(/\[(.*?)\]/)[1]},
+                    {
+                      stats: updatedVictimStats
+                    })
+                  updatedUser.updateOne(function (err) {
+                    if (err) console.log ('[error] could not write to db')
+                    else {
+                      ctx.reply(`Successfully attacked ${attackedUser.username}`)
+                      bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${strongestWeapon.name} by ${self.username} hitting -${strongestWeapon.stats.attack}`)
+                      checkDead(attackedUser.id)
+                    }
                   })
-                updatedUser.updateOne(function (err) {
-                  if (err) console.log ('[error] could not write to db')
-                  else {
-                    ctx.reply(`Successfully attacked ${attackedUser.username}`)
-                    bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${strongestWeapon.name} by ${self.username} hitting -${strongestWeapon.stats.attack}`)
-                  }
-                })
+                }
+              } else {
+                ctx.reply(`You don't have any weapon to attack with. Go find something!`)
               }
             })
         })
@@ -238,12 +243,16 @@ bot.hears(/inventory/i, ctx => { // take command
   Item.find({
     carried_by: ctx.from.id
   })
-  .exec((err, res) => {
-    let itemsList = 'You have the following items equipped:\n';
-    res && res.forEach(elem => {
-      itemsList = itemsList + `[${elem['_id']}] ${elem.name}\n`;
-    })
-    ctx.reply(itemsList);
+  .exec((err, items) => {
+    if (items && items.length) {
+      let itemsList = 'You have the following items equipped:\n';
+      items && items.forEach(elem => {
+        itemsList = itemsList + `[${elem['_id']}] ${elem.name}\n`;
+      })
+      ctx.reply(itemsList);
+    } else {
+      ctx.reply('You don\'t have any items');
+    }
   });
 })
 
@@ -259,5 +268,18 @@ bot.hears(/^(help|menu)$/i, ctx => { // take command
     .resize()
     .extra());
 })
+
+const checkDead = victimId => {
+  User.findOne({ id: victimId })
+    .exec((err, user) => {
+      if (user && user.stats && user.stats.hp && user.stats.hp <= 0) {
+        Item.updateMany({ carried_by: victimId }, { location: user.location, carried_by: undefined })
+          .exec((err, items) => {
+            if (err) console.log (`[error] could not update killed user ${user.username}`)
+            else bot.telegram.sendMessage(victimId, 'Bro u got shot too bad. You are lucky the ambulance has been passing close by. You were rescued and your hp has been restored to 100hp. You dropped your weapon at the place you were hit, you can try to find it there.')
+          })
+        }
+    })
+}
 
 bot.launch();
