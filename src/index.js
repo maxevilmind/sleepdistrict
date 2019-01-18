@@ -54,7 +54,11 @@ bot.start(ctx => {
       user.save(function (err) {if (err) console.log ('[error] could not write to db', err)});
     }
   })
-  ctx.reply('Send me your live location in order to enter the sleep district')
+  ctx.reply('Send me your live location in order to enter the sleep district. This is a mandatory rule in our district. Once you are in, you will be visible to the other players. You will be able to collect items and attack other people. You will alse be able to attack others.')
+  ctx.reply('Attacking distance is limited by weapon\'s effective range')
+  ctx.reply('Type \'menu\' or \'help\' to acces player menu')
+  ctx.reply('You can pick items around you with a \'pick\' command')
+  ctx.reply('You can attack people around with an \'attack\' command')
 });
 
 bot.on('edited_message', ctx => {
@@ -278,7 +282,13 @@ const checkDead = victimId => {
             if (err) console.log (`[error] could not update killed user ${user.username}`)
             else bot.telegram.sendMessage(victimId, 'Bro u got shot too bad. You are lucky the ambulance has been passing close by. You were rescued and your hp has been restored to 100hp. You dropped your weapon at the place you were hit, you can try to find it there.')
           })
-        }
+        let updatedVictimStats = Object.assign({}, user.stats)
+        updatedVictimStats.hp = 100;
+        User.updateOne({ id: victimId }, { stats: updatedVictimStats })
+          .exec((err, user) => {
+            if (err) console.log (`[error] could not restore hp for dead ${user.username}`)
+          })
+      }
     })
 }
 
