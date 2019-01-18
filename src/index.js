@@ -54,7 +54,7 @@ bot.start(ctx => {
       user.save(function (err) {if (err) console.log ('[error] could not write to db', err)});
     }
   })
-  ctx.reply('Send me your live location in order to enter the sleep district. This is a mandatory rule in our district. Once you are in, you will be visible to the other players. You will be able to collect items and attack other people. You will alse be able to attack others.')
+  ctx.reply('Send me your live location in order to enter the sleep district. This is a mandatory rule in our district. Once you are in, you will be visible to the other players. You will be able to collect items and attack other people.')
   ctx.reply('Attacking distance is limited by weapon\'s effective range')
   ctx.reply('Type \'menu\' or \'help\' to acces player menu')
   ctx.reply('You can pick items around you with a \'pick\' command')
@@ -144,7 +144,7 @@ bot.hears(/attack/i, ctx => {
       User.find({ // find entities nearby
         'location': {
           '$near': {
-            '$maxDistance': 1000000, '$geometry': {
+            '$maxDistance': 100000, '$geometry': {
               'type': "Point", 'coordinates': [
                 get(self, 'location.coordinates[0]'),
                 get(self, 'location.coordinates[1]'),
@@ -216,28 +216,36 @@ bot.hears(/🔫/i, ctx => { // attack command
         .exec((err, attackedUser)=> {
           Item.findOne({ carried_by: get(ctx, 'from.id') })
             .sort({ 'stats.attack': -1 })
-            .exec((err, strongestWeapon) => {
-              if (strongestWeapon) {
-                if (attackedUser && attackedUser.stats) {
-                  let updatedVictimStats = Object.assign({}, attackedUser.stats)
-                  updatedVictimStats.hp = updatedVictimStats.hp - strongestWeapon.stats.attack
-                  User.updateOne({
-                    '_id': ctx.message.text.match(/\[(.*?)\]/)[1]},
-                    {
-                      stats: updatedVictimStats
-                    })
-                    .exec((err, res) => {
-                      if (err) console.log ('[error] could not write to db')
-                      else {
-                        ctx.reply(`Successfully attacked ${attackedUser.username}`)
-                        bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${strongestWeapon.name} by ${self.username} hitting -${strongestWeapon.stats.attack}`)
-                        checkDead(attackedUser.id)
+            .exec((err, attackersStrongestWeapon) => {
+              Item.findOne({ carried_by: get(ctx, 'from.id') })
+                .sort({ 'stats.defence': -1 })
+                .exec((err, victimsStrongestArmor) => {
+                  if (attackersStrongestWeapon) {
+                    if (attackedUser && attackedUser.stats) {
+                      let updatedVictimStats = Object.assign({}, attackedUser.stats)
+                      let damage = 0
+                      if (victimsStrongestArmor) {
+                        damage = damage + attackersStrongestWeapon.stats.attack - victimsStrongestArmor.stats.defence
                       }
-                    })
-                }
-              } else {
-                ctx.reply(`You don't have any weapon to attack with. Go find something!`)
-              }
+                      updatedVictimStats.hp = updatedVictimStats.hp - damage
+                      User.updateOne({
+                        '_id': ctx.message.text.match(/\[(.*?)\]/)[1]},
+                        {
+                          stats: updatedVictimStats
+                        })
+                        .exec((err, res) => {
+                          if (err) console.log ('[error] could not write to db')
+                          else {
+                            ctx.reply(`You hit ${attackedUser.username} with your ${attackersStrongestWeapon.name} causing -${damage} damage`)
+                            bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${attackersStrongestWeapon.name} by ${self.username} hitting -${damage}`)
+                            checkDead(attackedUser.id)
+                          }
+                        })
+                    }
+                  } else {
+                    ctx.reply(`You don't have any weapon to attack with. Go find something!`)
+                  }
+                })
             })
         })
     })
