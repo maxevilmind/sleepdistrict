@@ -124,12 +124,12 @@ bot.hears(/pick/i, ctx => {
 })
 
 bot.hears(/attack/i, ctx => {
-  Location.findOne({ user_id: ctx.from.id })
+  Location.findOne({ user_id: get(ctx, 'from.id') }) // get user location to find nearby entities
     .exec((err, res) => {
-      Location.find({
+      Location.find({ // find entities nearby
         'location': {
           '$near': {
-            '$maxDistance': 10000, '$geometry': {
+            '$maxDistance': 1000000, '$geometry': {
               'type': "Point", 'coordinates': [
                 get(res, 'location.coordinates[0]'),
                 get(res, 'location.coordinates[1]'),
@@ -138,17 +138,26 @@ bot.hears(/attack/i, ctx => {
           }
         }
       })
-        .exec((err, users) => {
-          if (users) {
-            let menuItems = [];
-            users.forEach(user => {
-              menuItems.push([`🔫[${user['_id']}] ${user.username}`])
+        .exec((err, locations) => {
+          if (locations) {
+            Location.aggregate([{ // add user entity to location
+              '$lookup': {
+                from: 'users',
+                localField: 'user_id',
+                foreignField: 'id',
+                as: 'user'
+              }
+            }]).exec((err, users) => {
+              let menuItems = [];
+              users.forEach(location => {
+                menuItems.push([`🔫[${location['_id']}] ${location.user[0].username}`])
+              })
+              ctx.reply('Choose a player to attack', Markup
+              .keyboard(menuItems)
+              .oneTime()
+              .resize()
+              .extra());
             })
-            ctx.reply('Choose a player to attack', Markup
-            .keyboard(menuItems)
-            .oneTime()
-            .resize()
-            .extra());
           } else {
             ctx.reply('No entities found nearby')
           }
