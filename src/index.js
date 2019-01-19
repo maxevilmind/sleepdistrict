@@ -54,11 +54,14 @@ bot.start(ctx => {
       user.save(function (err) {if (err) console.log ('[error] could not write to db', err)});
     }
   })
-  ctx.reply('Send me your live location in order to enter the sleep district. This is a mandatory rule in our district. Once you are in, you will be visible to the other players. You will be able to collect items and attack other people.')
-  ctx.reply('Attacking distance is limited by weapon\'s effective range')
-  ctx.reply('Type \'menu\' or \'help\' to acces player menu')
-  ctx.reply('You can pick items around you with a \'pick\' command')
-  ctx.reply('You can attack people around with an \'attack\' command')
+  ctx.reply(`
+Hello, ${ctx.from.username}!
+Send me your live location in order to enter the sleep district. This is a mandatory rule in our district. Once you are in, you will be visible to the other players. You will be able to collect items and attack other people.
+Type \'menu\' or \'help\' to acces player menu
+You can pick items around you with a \'pick\' command
+You can attack people around with an \'attack\' command
+https://telegram.org/file/811140185/1458/YeO7DZ3pTus.513134.mp4/ba074449fc5c09f789
+`)
 });
 
 bot.on('edited_message', ctx => {
@@ -298,6 +301,7 @@ Your stats:\n
 ❤️ Health: ${self.stats.hp}
 ⚔ Attack: ${get(strongestWeapon, 'stats.attack') || 0}
 🛡 Defence: ${get(strongestArmor, 'stats.defence') || 0}
+💰 Money: ${get(self, 'money') || 0}
               `);
             })
           })
@@ -309,16 +313,18 @@ const checkDead = victimId => {
   User.findOne({ id: victimId })
     .exec((err, user) => {
       if (get(user, 'stats.hp') <= 0) {
-        Item.updateMany({ carried_by: victimId }, { location: user.location, carried_by: undefined })
+        Item.updateMany({ carried_by: victimId }, { location: user.location, carried_by: undefined }) //drop items
           .exec((err, items) => {
             if (err) console.log (`[error] could not update killed user ${user.username}`)
-            else bot.telegram.sendMessage(victimId, 'Bro u got shot too bad. You are lucky the ambulance has been passing close by. You were rescued and your hp has been restored to 100hp. You dropped your weapon at the place you were hit, you can try to find it there.')
+            else bot.telegram.sendMessage(victimId, `Bro u got shot too bad. You are lucky the ambulance has been passing close by. You were rescued and your hp has been restored to 100hp. You dropped your weapon at the place you were hit, you can try to find it there. Ambulance workers were filling the weapon posession report on you while you were lucky to bribe them. Your account balance is ${user.money} SDC.`)
           })
+        let updatedVictimMoney = user.money - 100; // penalty for dying
         let updatedVictimStats = Object.assign({}, user.stats)
-        updatedVictimStats.hp = 100;
-        User.updateOne({ id: victimId }, { stats: updatedVictimStats })
-          .exec((err, user) => {
+        updatedVictimStats.hp = 100; //resrore health
+        User.updateOne({ id: victimId }, { stats: updatedVictimStats, money: updatedVictimMoney })
+          .exec(() => {
             if (err) console.log (`[error] could not restore hp for dead ${user.username}`)
+            else console.log (`[info] ${user.username} is dead`)
           })
       }
     })

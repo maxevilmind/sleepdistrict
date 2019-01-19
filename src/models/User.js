@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     type: { type: String },
     coordinates: []
   },
+  money: Number,
   stats: {
     hp: Number,
     attack: Number,
