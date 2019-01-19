@@ -9,6 +9,7 @@ const get = require('lodash/get');
 
 const User = require('./models/User');
 const Item = require('./models/Item');
+const DamageLedger = require('./models/DamageLedger');
 
 const uristring =
   process.env.MONGOLAB_URI ||
@@ -242,6 +243,13 @@ bot.hears(/🔫/i, ctx => { // attack command
                             ctx.reply(`You hit ${attackedUser.username} with your ${attackersStrongestWeapon.name} causing -${damage} damage`)
                             bot.telegram.sendMessage(attackedUser.id, `You have been attacked with a ${attackersStrongestWeapon.name} by ${self.username} hitting -${damage}`)
                             checkDead(attackedUser.id)
+                            DamageLedger ({
+                              from: self.id,
+                              to: attackedUser.id,
+                              amount: damage,
+                              created_at: new Date(),
+                            })
+                              .save()
                           }
                         })
                     }
@@ -313,6 +321,7 @@ const checkDead = victimId => {
   User.findOne({ id: victimId })
     .exec((err, user) => {
       if (get(user, 'stats.hp') <= 0) {
+        calculateKillReward(victimId) // reward killer
         Item.updateMany({ carried_by: victimId }, { location: user.location, carried_by: undefined }) //drop items
           .exec((err, items) => {
             if (err) console.log (`[error] could not update killed user ${user.username}`)
@@ -326,6 +335,28 @@ const checkDead = victimId => {
             if (err) console.log (`[error] could not restore hp for dead ${user.username}`)
             else console.log (`[info] ${user.username} is dead`)
           })
+      }
+    })
+}
+
+const calculateKillReward = victimId => {
+  DamageLedger.findOne({to: victimId}, {}, { sort: { 'created_at' : -1 } })
+    .exec((err, incident) => {
+      if (err) console.log (`[error] could not find incident for ${victimId} death`)
+      else {
+        if (incident) {
+          User.findOne({id: incident.from})
+            .exec((err, attacker) => {
+              const moneyAfterReward = attacker.money + 100
+              User.updateOne({id: attacker.id}, {money: moneyAfterReward})
+                .exec((err, res) => {
+                  if (err) console.log (`[error] could not find incident for ${victimId} death`)
+                  else {
+                    bot.telegram.sendMessage(attacker.id, `You have been rewarded 100 SDC for your last kill`)
+                  }
+                })
+            })
+        }
       }
     })
 }
