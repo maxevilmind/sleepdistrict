@@ -176,7 +176,7 @@ bot.hears(/attack/i, ctx => {
 })
 
 bot.hears(/🖐/i, ctx => { // take command
-  User.findOne({ id: get(ctx, 'from.id') })
+  User.findOne({ id: get(ctx, 'from.id'), carried_by: undefined })
     .exec((err, self) => {
       const item = Item.update({
         '_id': ctx.message.text.match(/\[(.*?)\]/)[1],
@@ -230,6 +230,7 @@ bot.hears(/🔫/i, ctx => { // attack command
                       let damage = 0
                       if (victimsStrongestArmor) {
                         damage = damage + attackersStrongestWeapon.stats.attack - victimsStrongestArmor.stats.defence
+                        if (damage < 0) damage = 0 // otherwise we would heal the victim if the damage is positive
                       }
                       updatedVictimStats.hp = updatedVictimStats.hp - damage
                       User.updateOne({
