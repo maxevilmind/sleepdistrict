@@ -129,7 +129,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@maxevilmind](https://twitter.com/maxevilmind) - maxevilmind@gmail.com
+Max Larionov - [@maxevilmind](https://twitter.com/maxevilmind) - maxevilmind@gmail.com
 
 Project Link: [https://github.com/maxevilmind/sleepdistrict](https://github.com/maxevilmind/sleepdistrict)
 
