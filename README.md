@@ -82,9 +82,9 @@ To get a local copy up and running follow these simple example steps.
 ### Prerequisites
 
 This is an example of how to list things you need to use the software and how to install them.
-* npm
+* yarn
 ```sh
-npm install npm@latest -g
+brew install yarn
 ```
 
 ### Installation
@@ -94,9 +94,9 @@ npm install npm@latest -g
 ```sh
 git clone https://github.com/maxevilmind/sleepdistrict.git
 ```
-3. Install NPM packages
+3. Install yarn packages
 ```sh
-npm install
+yarn
 ```
 4. Rename `.env.example` to `.env` and set your token from the above step
 ```sh
@@ -132,3 +132,13 @@ Distributed under the MIT License. See `LICENSE` for more information.
 Your Name - [@maxevilmind](https://twitter.com/maxevilmind) - maxevilmind@gmail.com
 
 Project Link: [https://github.com/maxevilmind/sleepdistrict](https://github.com/maxevilmind/sleepdistrict)
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+[build-shield]: https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat-square
+[contributors-shield]: https://img.shields.io/badge/contributors-1-orange.svg?style=flat-square
+[license-shield]: https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square
+[license-url]: https://choosealicense.com/licenses/mit
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
+[linkedin-url]: https://www.linkedin.com/in/maxevilmind/
+[product-screenshot]: https://raw.githubusercontent.com/othneildrew/Best-README-Template/master/screenshot.png
