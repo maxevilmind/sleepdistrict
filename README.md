@@ -62,7 +62,7 @@
 
 [![Sleep District Screen Shot][product-screenshot]](https://github.com/maxevilmind/sleepdistrict)
 
-There a few Telegram MMORPG's and some of them are really nice, however, I didn't find one that can use your real-time location for PvP actions.
+There are a few Telegram MMORPG's and some of them are really nice, however, I didn't find one that can use your real-time location for PvP actions.
 I decided to build my own text-based MMORPG which obliges you to move in order to find loot in your city and stalk your enemies. You can engage into clan wars, attack and kill players to get their loot.
 Trade weapons, complete missions and create a strong community around you to survive.
 
